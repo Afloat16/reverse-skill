@@ -236,6 +236,14 @@ class ReviewIntegrityTests(unittest.TestCase):
             self.assertIn('finding.severity', codes)
             self.assertIn('finding.confidence', codes)
 
+    def test_path_reference_to_missing_finding_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_case(root)
+            path = root / 'report' / 'analysis.md'
+            path.write_text(path.read_text().replace('1. Hash the sample with E-001.', '1. E-001 supports finding F-999.'))
+            self.assertIn('reference.unknown_finding', self.codes(root))
+
 
 
 

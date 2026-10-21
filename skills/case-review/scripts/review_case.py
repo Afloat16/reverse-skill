@@ -262,7 +262,7 @@ def parse_reports(root, issues):
             if not evidence_ids:
                 issue(issues, "error", "path.evidence_missing", path_id + " has no evidence reference", relative_path(root, report_path))
             references.extend((evidence_id, relative_path(root, report_path)) for evidence_id in evidence_ids)
-            path_records.append({"id": path_id, "path_type": path_type, "evidence_ids": evidence_ids, "path": relative_path(root, report_path)})
+            path_records.append({"id": path_id, "path_type": path_type, "evidence_ids": evidence_ids, "finding_ids": ids_in(body, FINDING_ID), "path": relative_path(root, report_path)})
     return finding_records, path_records, references
 
 
@@ -393,6 +393,11 @@ def review_case(case_root, strict=False, verify_hashes=False):
     evidence, evidence_refs = parse_evidence(root, workitems, issues, verify_hashes)
     findings, paths, report_refs = parse_reports(root, issues)
     references = workitem_refs + timeline_refs + evidence_refs + report_refs
+    finding_ids = {finding["id"] for finding in findings}
+    for path in paths:
+        for finding_id in path["finding_ids"]:
+            if finding_id not in finding_ids:
+                issue(issues, "error", "reference.unknown_finding", "reference points to missing Finding: " + finding_id, path["path"])
 
     for evidence_id, source in references:
         if evidence_id not in evidence:
