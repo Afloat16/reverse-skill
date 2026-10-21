@@ -217,6 +217,15 @@ class ReviewIntegrityTests(unittest.TestCase):
             path.write_text(path.read_text() + '| WI-001 | Other | cre | sample | binary | pending | E-001 | |\n')
             self.assertIn('workitem.duplicate', self.codes(root))
 
+    def test_duplicate_report_ids_across_files_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_case(root)
+            (root / 'report' / 'duplicate.md').write_text((root / 'report' / 'analysis.md').read_text())
+            codes = self.codes(root)
+            self.assertIn('finding.duplicate', codes)
+            self.assertIn('path.duplicate', codes)
+
 
 
 

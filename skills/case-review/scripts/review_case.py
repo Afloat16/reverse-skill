@@ -217,6 +217,8 @@ def parse_reports(root, issues):
     finding_records = []
     path_records = []
     references = []
+    finding_ids = set()
+    path_ids = set()
     report_root = root / "report"
     report_files = sorted(report_root.rglob("*.md")) if report_root.is_dir() else []
     if not report_files:
@@ -226,6 +228,9 @@ def parse_reports(root, issues):
     for report_path in report_files:
         text = report_path.read_text(encoding="utf-8-sig")
         for finding_id, body in report_sections(text, FINDING_HEADING):
+            if finding_id in finding_ids:
+                issue(issues, "error", "finding.duplicate", "duplicate Finding ID: " + finding_id, relative_path(root, report_path))
+            finding_ids.add(finding_id)
             status = field_value(body, "status").lower()
             confidence = field_value(body, "confidence").lower()
             evidence_ids = ids_in(field_value(body, "evidence_ids"), EVIDENCE_ID)
@@ -243,6 +248,9 @@ def parse_reports(root, issues):
             finding_records.append({"id": finding_id, "status": status, "evidence_ids": evidence_ids, "path": relative_path(root, report_path)})
 
         for path_id, body in report_sections(text, PATH_HEADING):
+            if path_id in path_ids:
+                issue(issues, "error", "path.duplicate", "duplicate Path ID: " + path_id, relative_path(root, report_path))
+            path_ids.add(path_id)
             path_type = field_value(body, "path_type").lower()
             evidence_ids = ids_in(body, EVIDENCE_ID)
             if path_type not in PATH_TYPES:
