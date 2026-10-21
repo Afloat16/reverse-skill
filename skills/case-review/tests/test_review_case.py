@@ -244,6 +244,14 @@ class ReviewIntegrityTests(unittest.TestCase):
             path.write_text(path.read_text().replace('1. Hash the sample with E-001.', '1. E-001 supports finding F-999.'))
             self.assertIn('reference.unknown_finding', self.codes(root))
 
+    def test_supersedes_reference_to_missing_evidence_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_case(root)
+            path = root / 'evidence' / 'E-001.md'
+            path.write_text(path.read_text() + '- supersedes: E-999\n')
+            self.assertIn('reference.unknown_evidence', self.codes(root))
+
 
 
 

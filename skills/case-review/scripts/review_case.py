@@ -339,6 +339,7 @@ def parse_evidence(root, workitems, issues, verify_hashes):
         linked_workitems = ids_in(field_value(text, "linked_workitem"), WORKITEM_ID)
         content_hash_value = field_value(text, "content_hash")
         artifact_path = field_value(text, "artifact_path")
+        references.extend((evidence_id, relative_path(root, path)) for evidence_id in ids_in(field_value(text, "supersedes"), EVIDENCE_ID))
         if severity not in SEVERITIES:
             issue(issues, "error", "evidence.severity", "unsupported severity: " + severity, relative_path(root, path))
         if status not in EVIDENCE_STATUSES:
@@ -368,7 +369,7 @@ def build_traceability(evidence_ids, references):
             graph[evidence_id]["workitems"] += 1
         elif source.startswith("timeline.md:"):
             graph[evidence_id]["timeline"] += 1
-        else:
+        elif not source.replace("\\", "/").startswith("evidence/"):
             graph[evidence_id]["reports"] += 1
     return graph
 
