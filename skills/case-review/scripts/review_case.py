@@ -25,8 +25,27 @@ PATH_TYPES = {"attack", "callflow", "solve"}
 NETWORK_MODES = {"offline", "lab_only", "authorized_target_only", "unrestricted_lab"}
 
 
+def structural_text(text):
+    """Keep line numbers while excluding fenced Markdown examples from the graph."""
+    result = []
+    fence = ""
+    width = 0
+    for line in text.splitlines(keepends=True):
+        match = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line.rstrip("\r\n"))
+        if fence:
+            if match and match.group(1)[0] == fence and len(match.group(1)) >= width and not match.group(2).strip():
+                fence = ""
+            result.append("\n" if line.endswith("\n") else "")
+        elif match:
+            fence, width = match.group(1)[0], len(match.group(1))
+            result.append("\n" if line.endswith("\n") else "")
+        else:
+            result.append(line)
+    return "".join(result)
+
+
 def field_value(text, name):
-    lines = text.splitlines()
+    lines = structural_text(text).splitlines()
     for index, line in enumerate(lines):
         match = FIELD_LINE.match(line)
         if not match or match.group(1) != name:
@@ -95,7 +114,7 @@ def parse_workitems(root, issues):
         issue(issues, "error", "workitems.missing", "workitems.md is missing", "workitems.md")
         return records, references
 
-    for line_number, line in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), 1):
+    for line_number, line in enumerate(structural_text(path.read_text(encoding="utf-8-sig")).splitlines(), 1):
         cells = split_table_row(line)
         if len(cells) < 8 or not WORKITEM_ID.fullmatch(cells[0]):
             continue
@@ -129,7 +148,7 @@ def parse_timeline(root, issues):
         issue(issues, "error", "timeline.missing", "timeline.md is missing", "timeline.md")
         return events, references
 
-    lines = path.read_text(encoding="utf-8-sig").splitlines()
+    lines = structural_text(path.read_text(encoding="utf-8-sig")).splitlines()
     for index, line in enumerate(lines):
         if not line.startswith("## ") or "|" not in line:
             continue
@@ -155,7 +174,7 @@ def parse_scope(root, issues, strict):
         issue(issues, "error", "scope.missing", "scope.md is missing", "scope.md")
         return result
 
-    text = path.read_text(encoding="utf-8-sig")
+    text = structural_text(path.read_text(encoding="utf-8-sig"))
     auth = section_text(text, "auth")
     scope_section = section_text(text, "in_scope")
     network = section_text(text, "network_profile")
@@ -226,7 +245,7 @@ def parse_reports(root, issues):
         return finding_records, path_records, references
 
     for report_path in report_files:
-        text = report_path.read_text(encoding="utf-8-sig")
+        text = structural_text(report_path.read_text(encoding="utf-8-sig"))
         for finding_id, body in report_sections(text, FINDING_HEADING):
             if finding_id in finding_ids:
                 issue(issues, "error", "finding.duplicate", "duplicate Finding ID: " + finding_id, relative_path(root, report_path))
@@ -323,7 +342,7 @@ def parse_evidence(root, workitems, issues, verify_hashes):
 
     for path in evidence_files:
         evidence_id = path.stem
-        text = path.read_text(encoding="utf-8-sig")
+        text = structural_text(path.read_text(encoding="utf-8-sig"))
         heading = EVIDENCE_HEADING.search(text)
         if not heading:
             issue(issues, "error", "evidence.heading_missing", "Evidence record has no matching heading", relative_path(root, path))

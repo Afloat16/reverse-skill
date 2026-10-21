@@ -252,6 +252,18 @@ class ReviewIntegrityTests(unittest.TestCase):
             path.write_text(path.read_text() + '- supersedes: E-999\n')
             self.assertIn('reference.unknown_evidence', self.codes(root))
 
+    def test_fenced_examples_do_not_create_records_or_scope_fields(self):
+        self.assertEqual(REVIEW_CASE.field_value('```yaml\n- status: granted\n```\n- status: denied\n', 'status'), 'denied')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_case(root)
+            path = root / 'report' / 'analysis.md'
+            path.write_text(path.read_text() + '\n```markdown\n### F-example\n### P-example\n```\n')
+            result = REVIEW_CASE.review_case(root)
+            self.assertEqual(result['status'], 'PASS')
+            self.assertEqual(result['summary']['findings'], 1)
+            self.assertEqual(result['summary']['paths'], 1)
+
 
 
 
