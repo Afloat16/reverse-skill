@@ -193,5 +193,25 @@ class ReviewCaseTests(unittest.TestCase):
             self.assertFalse(any(item["code"] == "scope.assets_missing" for item in result["issues"]))
 
 
+class ReviewIntegrityTests(unittest.TestCase):
+    write_case = ReviewCaseTests.write_case
+
+    def codes(self, root, **options):
+        return {item['code'] for item in REVIEW_CASE.review_case(root, **options)['issues']}
+
+    def test_escaped_workitem_pipe_preserves_status_and_evidence_columns(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_case(root)
+            path = root / 'workitems.md'
+            path.write_text(path.read_text().replace('Recover sample behavior', r'Recover A\|B behavior'))
+            result = REVIEW_CASE.review_case(root)
+            self.assertEqual(result['status'], 'PASS')
+            self.assertEqual(result['traceability']['E-001']['workitems'], 1)
+
+
+
+
 if __name__ == "__main__":
     unittest.main()
+

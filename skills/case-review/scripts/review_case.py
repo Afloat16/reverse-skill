@@ -73,7 +73,18 @@ def split_table_row(line):
     stripped = line.strip()
     if not stripped.startswith("|") or not stripped.endswith("|"):
         return []
-    return [cell.strip() for cell in stripped[1:-1].split("|")]
+    cells = []
+    cell = []
+    backslashes = 0
+    for character in stripped[1:-1]:
+        if character == "|" and backslashes % 2 == 0:
+            cells.append("".join(cell).strip())
+            cell = []
+        else:
+            cell.append(character)
+        backslashes = backslashes + 1 if character == "\\" else 0
+    cells.append("".join(cell).strip())
+    return cells
 
 
 def parse_workitems(root, issues):
