@@ -209,6 +209,14 @@ class ReviewIntegrityTests(unittest.TestCase):
             self.assertEqual(result['status'], 'PASS')
             self.assertEqual(result['traceability']['E-001']['workitems'], 1)
 
+    def test_duplicate_workitem_id_is_not_silently_overwritten(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_case(root)
+            path = root / 'workitems.md'
+            path.write_text(path.read_text() + '| WI-001 | Other | cre | sample | binary | pending | E-001 | |\n')
+            self.assertIn('workitem.duplicate', self.codes(root))
+
 
 
 

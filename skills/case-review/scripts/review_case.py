@@ -100,6 +100,9 @@ def parse_workitems(root, issues):
         if len(cells) < 8 or not WORKITEM_ID.fullmatch(cells[0]):
             continue
         workitem_id = cells[0]
+        if workitem_id in records:
+            issue(issues, "error", "workitem.duplicate", "duplicate work item ID: " + workitem_id, "workitems.md:" + str(line_number))
+            continue
         status = cells[5].lower()
         if status not in WORKITEM_STATUSES:
             issue(
