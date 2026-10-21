@@ -64,6 +64,12 @@ def main():
             return 1
         contents[eid] = f.read_text(encoding="utf-8-sig")
 
+    heading = re.compile(r"(?m)^###\s+" + re.escape(args.finding_id) + r"(?=\s|$)")
+    for report in report_dir.rglob("*.md") if report_dir.is_dir() else []:
+        if heading.search(report.read_text(encoding="utf-8-sig")):
+            print(f"Error: Finding already exists: {args.finding_id} in {report}", file=sys.stderr)
+            return 1
+
     report_dir.mkdir(exist_ok=True)
     for eid in ids:
         f = evidence_dir / f"{eid}.md"

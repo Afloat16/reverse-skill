@@ -41,10 +41,11 @@ if ($LASTEXITCODE -ne 0) { throw "Python consolidation failed" }
 # rewrites E-001.md (adds the superseded marker), which changes its SHA-256.
 $review = python (Join-Path $root "skills\case-review\scripts\review_case.py") $demo 2>&1 | Select-Object -Last 8
 if ($LASTEXITCODE -ne 0) { throw "review_case failed to parse consolidated case:`n$($review -join [Environment]::NewLine)" }
-# Invalid IDs must fail before changing any record.
+
+# Invalid IDs and duplicate Findings must fail before changing any record.
 $beforeEvidence = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $scratch 'evidence\E-001.md')))
 $beforeReport = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $scratch 'report\report.md')))
-foreach ($ids in @('../outside')) {
+foreach ($ids in @('../outside', 'E-001')) {
     $rejected = $false
     try {
         & (Join-Path $root 'skills\scripts\consolidate-evidence.ps1') -CaseRoot $scratch -EvidenceIds $ids -FindingId F-CONSOL-2 -Title 'invalid' -Description 'must not append' -ErrorAction Stop

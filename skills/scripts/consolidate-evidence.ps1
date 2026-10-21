@@ -38,6 +38,15 @@ foreach ($id in $idList) {
     $contents[$id] = Get-Content -LiteralPath $evidenceFile -Raw -Encoding UTF8
 }
 
+$heading = '(?m)^###\s+' + [regex]::Escape($FindingId) + '(?=\s|$)'
+if (Test-Path -LiteralPath $reportDir) {
+    foreach ($report in @(Get-ChildItem -LiteralPath $reportDir -Filter '*.md' -File -Recurse)) {
+        if ((Get-Content -LiteralPath $report.FullName -Raw -Encoding UTF8) -cmatch $heading) {
+            Write-Error "Finding already exists: $FindingId in $($report.FullName)"
+        }
+    }
+}
+
 if (-not (Test-Path -LiteralPath $reportDir)) { New-Item -ItemType Directory -Path $reportDir -Force | Out-Null }
 foreach ($id in $idList) {
     $evidenceFile = Join-Path $evidenceDir "$id.md"

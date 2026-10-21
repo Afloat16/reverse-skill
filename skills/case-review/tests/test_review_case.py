@@ -294,6 +294,29 @@ class ConsolidationIntegrityTests(unittest.TestCase):
             self.assertEqual(outside.read_bytes(), before)
             self.assertFalse((root / 'report').exists())
 
+    def test_duplicate_finding_is_rejected_before_evidence_mutation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'evidence').mkdir()
+            evidence = root / 'evidence' / 'E-001.md'
+            evidence.write_text('### E-001\n- status: observed\n')
+            first = self.run_consolidation(root)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            before = {p: p.read_bytes() for p in root.rglob('*') if p.is_file()}
+            result = self.run_consolidation(root, '--description', 'Different conclusion')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual({p: p.read_bytes() for p in root.rglob('*') if p.is_file()}, before)
+
+    def test_finding_identity_is_not_a_prefix_match(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'evidence').mkdir()
+            (root / 'evidence' / 'E-001.md').write_text('### E-001\n- status: observed\n')
+            (root / 'report').mkdir()
+            (root / 'report' / 'other.md').write_text('### F-001-other\n- status: candidate\n')
+            result = self.run_consolidation(root)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_invalid_finding_id_and_evidence_link_leave_case_unchanged(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
