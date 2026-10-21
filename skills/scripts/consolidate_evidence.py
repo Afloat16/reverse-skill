@@ -43,21 +43,31 @@ def main():
     case_root = Path(args.case_root)
     evidence_dir = case_root / "evidence"
     report_dir = case_root / "report"
-    report_dir.mkdir(exist_ok=True)
 
-    ids = [i.strip() for i in args.evidence_ids.split(",") if i.strip()]
+    ids = list(dict.fromkeys(i.strip() for i in args.evidence_ids.split(",") if i.strip()))
     if not ids:
         print("Error: no Evidence IDs provided", file=sys.stderr)
         return 1
+    if not re.fullmatch(r"F-[A-Za-z0-9][A-Za-z0-9_-]*", args.finding_id) or any(
+        not re.fullmatch(r"E-[A-Za-z0-9][A-Za-z0-9_-]*", eid) for eid in ids
+    ):
+        print("Error: expected plain E-... and F-... record IDs", file=sys.stderr)
+        return 1
+    contents = {}
     for eid in ids:
         f = evidence_dir / f"{eid}.md"
-        if not f.exists():
+        if not f.is_file():
             print(f"Error: {f} not found", file=sys.stderr)
             return 1
+        if f.is_symlink() or not f.resolve().is_relative_to(case_root.resolve()):
+            print(f"Error: Evidence must be a case-local regular file: {f}", file=sys.stderr)
+            return 1
+        contents[eid] = f.read_text(encoding="utf-8-sig")
 
+    report_dir.mkdir(exist_ok=True)
     for eid in ids:
         f = evidence_dir / f"{eid}.md"
-        content = f.read_text(encoding="utf-8-sig")
+        content = contents[eid]
         f.write_text(mark_superseded(content, args.finding_id), encoding="utf-8-sig")
         print(f"Marked {eid} as superseded")
 

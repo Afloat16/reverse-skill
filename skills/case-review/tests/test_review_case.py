@@ -1,6 +1,8 @@
 import hashlib
 import importlib.util
 import tempfile
+import subprocess
+import sys
 from unittest.mock import patch
 import unittest
 from pathlib import Path
@@ -271,6 +273,45 @@ class ReviewIntegrityTests(unittest.TestCase):
             self.write_case(root)
             with patch.object(REVIEW_CASE, 'sha256_file', side_effect=PermissionError('fixture access denied')):
                 self.assertIn('artifact.unreadable', self.codes(root, verify_hashes=True))
+
+
+CONSOLIDATE = Path(__file__).resolve().parents[2] / 'scripts' / 'consolidate_evidence.py'
+
+
+class ConsolidationIntegrityTests(unittest.TestCase):
+    def run_consolidation(self, root, *extra):
+        return subprocess.run([sys.executable, str(CONSOLIDATE), '--case-root', str(root), '--evidence-ids', 'E-001', '--finding-id', 'F-001', '--title', 'Fixture', '--description', 'Fixture', *extra], capture_output=True, text=True)
+
+    def test_invalid_record_ids_do_not_read_or_rewrite_outside_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'evidence').mkdir()
+            outside = root / 'outside.md'
+            outside.write_text('### E-001\n- status: observed\n')
+            before = outside.read_bytes()
+            result = self.run_consolidation(root, '--evidence-ids', '../outside')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(outside.read_bytes(), before)
+            self.assertFalse((root / 'report').exists())
+
+    def test_invalid_finding_id_and_evidence_link_leave_case_unchanged(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'evidence').mkdir()
+            (root / 'evidence' / 'E-001.md').write_text('### E-001\n- status: observed\n')
+            before = (root / 'evidence' / 'E-001.md').read_bytes()
+            result = self.run_consolidation(root, '--finding-id', 'F-001\n### F-other')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual((root / 'evidence' / 'E-001.md').read_bytes(), before)
+            self.assertFalse((root / 'report').exists())
+            (root / 'evidence' / 'E-001.md').unlink()
+            outside = root / 'outside.md'
+            outside.write_bytes(before)
+            (root / 'evidence' / 'E-001.md').symlink_to(outside)
+            result = self.run_consolidation(root)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(outside.read_bytes(), before)
+            self.assertFalse((root / 'report').exists())
 
 
 
