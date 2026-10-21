@@ -323,7 +323,11 @@ def verify_artifact(root, artifact_path, expected_hash, issues, display_path):
     if not candidate.is_file():
         issue(issues, "error", "artifact.missing", "artifact_path does not exist", display_path)
         return
-    digest = sha256_file(candidate)
+    try:
+        digest = sha256_file(candidate)
+    except OSError as exc:
+        issue(issues, "error", "artifact.unreadable", "cannot read artifact: " + str(exc), display_path)
+        return
     if digest != expected_hash:
         issue(issues, "error", "artifact.hash_mismatch", "artifact SHA-256 does not match content_hash", display_path)
 

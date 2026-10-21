@@ -1,6 +1,7 @@
 import hashlib
 import importlib.util
 import tempfile
+from unittest.mock import patch
 import unittest
 from pathlib import Path
 
@@ -263,6 +264,13 @@ class ReviewIntegrityTests(unittest.TestCase):
             self.assertEqual(result['status'], 'PASS')
             self.assertEqual(result['summary']['findings'], 1)
             self.assertEqual(result['summary']['paths'], 1)
+
+    def test_unreadable_artifact_produces_failed_review_instead_of_traceback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_case(root)
+            with patch.object(REVIEW_CASE, 'sha256_file', side_effect=PermissionError('fixture access denied')):
+                self.assertIn('artifact.unreadable', self.codes(root, verify_hashes=True))
 
 
 
