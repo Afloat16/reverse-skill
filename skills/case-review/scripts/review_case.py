@@ -240,6 +240,10 @@ def parse_reports(root, issues):
                     issue(issues, "error", "finding.field_missing", finding_id + " is missing " + field, relative_path(root, report_path))
             if status not in {"candidate", "validated", "false_positive", "accepted_risk", "superseded"}:
                 issue(issues, "error", "finding.status", finding_id + " has unsupported status", relative_path(root, report_path))
+            if field_value(body, "severity").lower() not in SEVERITIES:
+                issue(issues, "error", "finding.severity", finding_id + " has unsupported severity", relative_path(root, report_path))
+            if confidence not in {"high", "medium", "low"}:
+                issue(issues, "error", "finding.confidence", finding_id + " has unsupported confidence", relative_path(root, report_path))
             if status == "validated" and confidence == "low":
                 issue(issues, "error", "finding.confidence", finding_id + " is validated with low confidence", relative_path(root, report_path))
             if not evidence_ids:

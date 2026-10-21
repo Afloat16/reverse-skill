@@ -226,6 +226,16 @@ class ReviewIntegrityTests(unittest.TestCase):
             self.assertIn('finding.duplicate', codes)
             self.assertIn('path.duplicate', codes)
 
+    def test_finding_classification_values_are_validated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_case(root)
+            path = root / 'report' / 'analysis.md'
+            path.write_text(path.read_text().replace('- severity: info', '- severity: typo').replace('- confidence: high', '- confidence: typo'))
+            codes = self.codes(root)
+            self.assertIn('finding.severity', codes)
+            self.assertIn('finding.confidence', codes)
+
 
 
 
